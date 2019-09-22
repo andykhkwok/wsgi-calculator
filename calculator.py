@@ -44,15 +44,42 @@ To submit your homework:
 
 def add(*args):
     """ Returns a STRING with the sum of the arguments """
-
     # TODO: Fill sum with the correct value, based on the
     # args provided.
-    sum = "0"
-
-    return sum
+    a = args[0]
+    b = args[1]    
+    result = int(a) + int(b)
+    return str(result)
 
 # TODO: Add functions for handling more arithmetic operations.
 
+def subtract(*args):
+    a = args[0]
+    b = args[1]
+    result = int(a) - int(b)
+    return str(result)
+
+def multiply(*args):
+    a = args[0]
+    b = args[1]
+    result = int(a)*int(b)
+    return str(result) 
+
+def divide(*args):
+    a = args[0]
+    b = args[1]
+    result = int(a)/int(b)
+    return str(result)
+
+def home(*args):
+    page = '''
+        <html>
+        add
+        </html>
+        '''
+    return page
+       
+        
 def resolve_path(path):
     """
     Should return two values: a callable and an iterable of
@@ -63,9 +90,31 @@ def resolve_path(path):
     # examples provide the correct *syntax*, but you should
     # determine the actual values of func and args using the
     # path.
-    func = add
-    args = ['25', '32']
-
+    method = {
+        'add': add,
+        'subtract': subtract,
+        'multiply': multiply,
+        'divide': divide,
+        'home': home,
+    }
+    path = path.strip('/').split('/')
+    
+    entry = path[0]
+    args = path[1:] 
+    if entry == 'add':
+        selection = 'add'
+    elif entry == 'subtract':
+        selection = 'subtract'
+    elif entry == 'multiply':
+        selection = 'multiply'
+    elif entry == 'divide':
+        selection = 'divide'
+    elif entry == '':
+        selection = 'home'
+    try:
+        func = method[selection]
+    except KeyError:
+        raise NameError
     return func, args
 
 def application(environ, start_response):
@@ -76,9 +125,34 @@ def application(environ, start_response):
     #
     # TODO (bonus): Add error handling for a user attempting
     # to divide by zero.
-    pass
+    headers = [('Content-type', 'text/html')]
+    try:
+        path = environ.get('PATH_INFO', None)
+        if path is None:
+            raise NameError
+        # print(path)
+        # print(e)
+        func, args = resolve_path(path)
+        body = func(*args)
+        status = "200 OK"
+    except NameError:
+        status = "404 Not Found"
+        body = "<h1>Not Found</h1>"
+    except ZeroDivisionError:
+        status = "400 Bad Request"
+        body = "<h1>Division by Zero</h1>"
+    except Exception:
+        status = "500 Internal Server Error"
+        body = "<h1> Internal Server Error</h1>"
+    finally:
+        headers.append(('Content-length', str(len(body))))
+        start_response(status, headers)
+        return [body.encode('utf8')]    
 
 if __name__ == '__main__':
     # TODO: Insert the same boilerplate wsgiref simple
     # server creation that you used in the book database.
-    pass
+    from wsgiref.simple_server import make_server
+    srv = make_server('localhost', 8080, application)
+    srv.serve_forever()
+    
